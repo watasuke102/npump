@@ -5,6 +5,8 @@ use crate::{model::WorkspaceState, registry::Registry, workspace};
 pub struct App {
     pub workspaces: Vec<WorkspaceState>,
     pub active_workspace: usize,
+    pub package_name_width: usize,
+    pub version_width: usize,
     pub status: String,
     pub should_quit: bool,
 }
@@ -24,12 +26,41 @@ impl App {
             status = format!("Ready with {} warning(s): {first}", warnings.len());
         }
 
+        let (package_name_width, version_width) = Self::calculate_column_widths(&workspaces);
+
         Ok(Self {
             workspaces,
             active_workspace: 0,
+            package_name_width,
+            version_width,
             status,
             should_quit: false,
         })
+    }
+
+    fn calculate_column_widths(workspaces: &[WorkspaceState]) -> (usize, usize) {
+        let package_name_width = workspaces
+            .iter()
+            .flat_map(|workspace| workspace.entries.iter())
+            .map(|entry| entry.name.chars().count())
+            .max()
+            .unwrap_or(1);
+        let version_width = workspaces
+            .iter()
+            .flat_map(|workspace| workspace.entries.iter())
+            .flat_map(|entry| {
+                [
+                    entry.current_version.to_string().chars().count(),
+                    entry.latest_version.to_string().chars().count(),
+                ]
+            })
+            .max()
+            .unwrap_or(1);
+        (package_name_width, version_width)
+    }
+
+    pub fn refresh_column_widths(&mut self) {
+        (self.package_name_width, self.version_width) = Self::calculate_column_widths(&self.workspaces);
     }
 
     pub fn current_workspace(&self) -> &WorkspaceState {

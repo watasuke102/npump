@@ -18,6 +18,7 @@ use ratatui::{
 use crate::app::App;
 
 pub fn run(app: &mut App) -> Result<()> {
+    app.refresh_column_widths();
     enable_raw_mode().context("failed to enable raw mode")?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen).context("failed to enter alternate screen")?;
@@ -111,12 +112,16 @@ fn render(frame: &mut ratatui::Frame<'_>, app: &App) {
             .iter()
             .map(|entry| {
                 let marker = if entry.selected { "[x]" } else { "[ ]" };
+                let current_version = entry.current_version.to_string();
+                let latest_version = entry.latest_version.to_string();
                 let line = format!(
-                    "{marker} {:<28} {:<15} -> {:<15} ({})",
-                    entry.name,
-                    entry.current_version,
-                    entry.latest_version,
-                    entry.section.label()
+                    "{marker} {name:<name_width$} {current:<version_width$} -> {latest:<version_width$} ({section})",
+                    name = entry.name,
+                    current = current_version,
+                    latest = latest_version,
+                    section = entry.section.label(),
+                    name_width = app.package_name_width,
+                    version_width = app.version_width,
                 );
                 ListItem::new(line)
             })
